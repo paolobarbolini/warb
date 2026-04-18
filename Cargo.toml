@@ -1,0 +1,22 @@
+[package]
+name = "warb"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Unofficial Rust bindings compatible with Blackmagic Design Blackmagic RAW. Not affiliated with or endorsed by Blackmagic Design."
+license = "MIT"
+repository = "https://github.com/paolobarbolini/warb"
+keywords = ["blackmagic", "braw", "video", "decoder", "cinema"]
+categories = ["multimedia::video", "external-ffi-bindings"]
+links = "BlackmagicRawAPI"
+
+[features]
+# Emit `[braw] …` tracing to stderr from the C++ shim. Useful when diagnosing
+# vtable or callback-lifetime issues against a new SDK runtime.
+trace = []
+
+[dependencies]
+cxx = "1"
+
+[build-dependencies]
+cxx-build = "1"

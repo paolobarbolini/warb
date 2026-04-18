@@ -1,0 +1,78 @@
+name: CI
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+# CI runs on vanilla Ubuntu runners without the Blackmagic RAW runtime
+# installed. The crate `dlopen`s the SDK at runtime, so build/test of
+# the crate itself needs no BMD file. The SDK-gated integration tests
+# in `tests/sdk_roundtrip.rs` self-skip when `BRAW_RUNTIME_DIR` and
+# `BRAW_TEST_CLIP` are unset.
+
+jobs:
+  cargo-deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  fmt:
+    name: rustfmt / 1.95.0
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          components: rustfmt
+
+      - name: Rust rustfmt
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: clippy / 1.95.0
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@1.95.0
+        with:
+          components: clippy
+
+      - name: Run clippy
+        run: cargo clippy --all-features -- -D warnings
+
+  test:
+    name: test / ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - name: stable
+            rust: stable
+          - name: beta
+            rust: beta
+          - name: nightly
+            rust: nightly
+          - name: 1.85.0
+            rust: 1.85.0
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+
+      - name: Run tests
+        run: cargo test
+
+      - name: Run tests (--features trace)
+        run: cargo test --features trace
