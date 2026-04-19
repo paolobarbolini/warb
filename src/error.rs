@@ -29,6 +29,9 @@ impl From<cxx::Exception> for BrawError {
 
 /// BMD HRESULT code, surfaced to callbacks. `is_ok()` iff `>= 0` per
 /// standard COM convention.
+///
+/// Received as the `result` parameter on every
+/// [`Callback`](crate::Callback) method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct HResult(pub i32);
 

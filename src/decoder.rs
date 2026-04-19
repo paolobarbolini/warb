@@ -38,6 +38,8 @@ impl Callback for DecoderHandler {
 
 /// High-level synchronous decoder: one frame in, bytes out. Built on top
 /// of the low-level primitives; see the crate-level docs for pipelining.
+///
+/// Constructed via [`Decoder::new`].
 pub struct Decoder {
     codec: Codec,
     clip: Option<Clip>,

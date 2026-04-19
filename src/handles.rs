@@ -14,6 +14,8 @@ use crate::{
 
 /// The decoder codec, owning the SDK factory, codec, and callback
 /// dispatcher. Drop order handles SDK teardown safely.
+///
+/// Constructed via [`Codec::new`].
 pub struct Codec(UniquePtr<ffi::BrawCodec>);
 
 impl Codec {
@@ -32,9 +34,7 @@ impl Codec {
         Ok(())
     }
 
-    /// Open a `.braw` clip. The path is passed to the SDK as raw bytes —
-    /// it doesn't have to be valid UTF-8 (Linux paths seldom are). An
-    /// embedded NUL byte is the only disallowed content.
+    /// Open a `.braw` clip.
     pub fn open_clip(&mut self, path: impl AsRef<Path>) -> Result<Clip, BrawError> {
         self.do_open_clip(path.as_ref())
     }
@@ -60,6 +60,8 @@ impl Codec {
 
 /// An opened `.braw` clip. Metadata getters are cheap; frame reads are
 /// asynchronous via [`create_read_job`](Self::create_read_job).
+///
+/// Returned by [`Codec::open_clip`].
 pub struct Clip(UniquePtr<ffi::BrawClip>);
 
 impl Clip {
@@ -87,8 +89,10 @@ impl Clip {
     }
 }
 
-/// A frame as received in `on_read_complete` — bitstream loaded, not yet
-/// decoded. Configure its output format, then create a decode+process job.
+/// A frame's bitstream, loaded but not yet decoded. Configure its output
+/// format, then create a decode+process job.
+///
+/// Received from [`Callback::on_read_complete`].
 pub struct Frame(UniquePtr<ffi::BrawFrame>);
 
 impl Frame {
@@ -116,9 +120,12 @@ impl Frame {
     }
 }
 
-/// A fully-decoded image received via `on_process_complete`. Metadata
-/// (width, height, format, size) is queried from the SDK once at
-/// construction and cached; subsequent calls are free.
+/// A fully-decoded image. Metadata (width, height, format, size) is
+/// queried from the SDK once at construction and cached; subsequent
+/// calls are free.
+///
+/// Received from [`Callback::on_process_complete`], or returned by
+/// [`Decoder::decode_frame`](crate::Decoder::decode_frame).
 pub struct ProcessedImage {
     inner: UniquePtr<ffi::BrawProcessedImage>,
     width: u32,
@@ -203,6 +210,9 @@ impl AsRef<[u8]> for ProcessedImage {
 
 /// A queued-but-not-yet-submitted job. Calling [`submit`](Self::submit)
 /// consumes the handle (the SDK takes ownership internally).
+///
+/// Returned by [`Clip::create_read_job`] and
+/// [`Frame::create_decode_and_process_job`].
 pub struct Job(UniquePtr<ffi::BrawJob>);
 
 impl Job {

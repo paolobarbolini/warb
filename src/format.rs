@@ -2,6 +2,8 @@
 //! the Blackmagic RAW SDK manual (August 2025) §"Basic Types" p.22–23.
 
 /// Decode pipeline backend. CPU is always available on Linux.
+///
+/// Passed to [`Codec::prepare_pipeline`](crate::Codec::prepare_pipeline).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum Pipeline {
@@ -15,6 +17,9 @@ pub enum Pipeline {
 /// decodes (manual p.23, p.77). Some BRAW variants silently clamp
 /// `Eighth` to `Quarter`; always trust `ProcessedImage::width()/height()`
 /// over [`divisor`](Self::divisor) for actual output dimensions.
+///
+/// Passed to [`Frame::set_resolution_scale`](crate::Frame::set_resolution_scale)
+/// or [`Decoder::set_scale`](crate::Decoder::set_scale).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum ResolutionScale {
@@ -37,6 +42,10 @@ impl ResolutionScale {
 }
 
 /// Output pixel format. Values are the SDK's FourCC tags (manual p.22).
+///
+/// Passed to [`Frame::set_resource_format`](crate::Frame::set_resource_format)
+/// and [`Decoder::decode_frame`](crate::Decoder::decode_frame); returned from
+/// [`ProcessedImage::format`](crate::ProcessedImage::format).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u32)]
 pub enum ResourceFormat {
