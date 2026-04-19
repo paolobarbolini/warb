@@ -49,7 +49,7 @@ You do need the runtime installed on every machine that actually decodes `.braw`
    export BRAW_RUNTIME_DIR=/opt/BlackmagicRAW/BlackmagicRawAPI
    ```
 
-   (The directory that contains `libBlackmagicRawAPI.so`.) If unset, the crate falls through to the default `dlopen` search path: `LD_LIBRARY_PATH`, `/etc/ld.so.conf.d/*`, and so on. When the library cannot be found, `Codec::new` / `Decoder::new` return a `BrawError` carrying the `dlopen` failure message.
+   (The directory that contains `libBlackmagicRawAPI.so`.) If unset, the crate falls through to the default `dlopen` search path: `LD_LIBRARY_PATH`, `/etc/ld.so.conf.d/*`, and so on. When the library cannot be found, `Codec::new` / `Decoder::new` return an `Error` carrying the `dlopen` failure message.
 
 ## API overview
 
@@ -95,7 +95,7 @@ cargo run --release --example to_rgba_pipelined -- clip.braw "" quarter > frames
 
 Two tiers. Unit tests run anywhere; SDK-gated tests only on a machine that has the Blackmagic RAW runtime + a clip.
 
-**Pure-Rust unit tests** cover the format/enum plumbing (`ResourceFormat` round-trip, `bytes_per_pixel`, `HResult` sign classification, `BrawError` display, …) and run with no SDK present:
+**Pure-Rust unit tests** cover the format/enum plumbing (`ResourceFormat` round-trip, `bytes_per_pixel`, `HResult` sign classification, `Error` display, …) and run with no SDK present:
 
 ```sh
 cargo test

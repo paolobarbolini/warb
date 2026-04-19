@@ -87,7 +87,9 @@ mod handler;
 mod handles;
 
 pub use decoder::Decoder;
-pub use error::{BrawError, HResult};
+#[expect(deprecated, reason = "re-export kept for backwards compatibility")]
+pub use error::BrawError;
+pub use error::{Error, HResult};
 pub use format::{Pipeline, ResolutionScale, ResourceFormat};
 pub use handler::Callback;
 pub use handles::{Clip, Codec, Frame, Job, ProcessedImage};

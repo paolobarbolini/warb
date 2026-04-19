@@ -5,7 +5,7 @@
 use std::{path::Path, sync::mpsc};
 
 use crate::{
-    error::{BrawError, HResult},
+    error::{Error, HResult},
     format::{Pipeline, ResolutionScale, ResourceFormat},
     handler::Callback,
     handles::{Clip, Codec, Frame, ProcessedImage},
@@ -50,7 +50,7 @@ pub struct Decoder {
 impl Decoder {
     /// Initialise the SDK runtime, prepare the CPU pipeline, and be ready
     /// to accept `open()` calls.
-    pub fn new() -> Result<Self, BrawError> {
+    pub fn new() -> Result<Self, Error> {
         let (tx, rx) = mpsc::channel();
         let mut codec = Codec::new(DecoderHandler { tx })?;
         codec.prepare_pipeline(Pipeline::Cpu)?;
@@ -63,7 +63,7 @@ impl Decoder {
         })
     }
 
-    pub fn open(&mut self, path: &Path) -> Result<(), BrawError> {
+    pub fn open(&mut self, path: &Path) -> Result<(), Error> {
         self.clip = Some(self.codec.open_clip(path)?);
         Ok(())
     }
@@ -110,14 +110,14 @@ impl Decoder {
         &mut self,
         frame_index: u64,
         format: ResourceFormat,
-    ) -> Result<ProcessedImage, BrawError> {
+    ) -> Result<ProcessedImage, Error> {
         // Drain anything left over from a previous call.
         while self.events.try_recv().is_ok() {}
 
         let clip = self
             .clip
             .as_mut()
-            .ok_or_else(|| BrawError::new("no clip is open"))?;
+            .ok_or_else(|| Error::new("no clip is open"))?;
         clip.create_read_job(frame_index)?.submit()?;
         self.codec.flush_jobs();
 
@@ -125,13 +125,12 @@ impl Decoder {
         while let Ok(ev) = self.events.try_recv() {
             if let DecoderEvent::Read { result, frame: f } = ev {
                 if result.is_err() {
-                    return Err(BrawError::new(format!("read failed ({result})")));
+                    return Err(Error::new(format!("read failed ({result})")));
                 }
                 frame = f;
             }
         }
-        let mut frame =
-            frame.ok_or_else(|| BrawError::new("on_read_complete delivered no frame"))?;
+        let mut frame = frame.ok_or_else(|| Error::new("on_read_complete delivered no frame"))?;
 
         frame.set_resource_format(format)?;
         frame.set_resolution_scale(self.scale)?;
@@ -142,11 +141,11 @@ impl Decoder {
         while let Ok(ev) = self.events.try_recv() {
             if let DecoderEvent::Process { result, image: i } = ev {
                 if result.is_err() {
-                    return Err(BrawError::new(format!("process failed ({result})")));
+                    return Err(Error::new(format!("process failed ({result})")));
                 }
                 image = i;
             }
         }
-        image.ok_or_else(|| BrawError::new("on_process_complete delivered no image"))
+        image.ok_or_else(|| Error::new("on_process_complete delivered no image"))
     }
 }

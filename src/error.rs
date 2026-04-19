@@ -1,31 +1,36 @@
 use std::fmt::{self, Display, Formatter};
 
 /// Error type for the crate. Wraps SDK failure messages, path conversion
-/// errors, and invariant violations in a single stringly-typed variant —
+/// errors, and invariant violations in a single stringly-typed variant:
 /// there isn't much the caller can discriminate on that isn't already in
 /// the message.
 #[derive(Debug)]
-pub struct BrawError(String);
+pub struct Error(String);
 
-impl BrawError {
+impl Error {
     pub(crate) fn new(msg: impl Into<String>) -> Self {
         Self(msg.into())
     }
 }
 
-impl Display for BrawError {
+impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
     }
 }
 
-impl std::error::Error for BrawError {}
+impl std::error::Error for Error {}
 
-impl From<cxx::Exception> for BrawError {
+impl From<cxx::Exception> for Error {
     fn from(e: cxx::Exception) -> Self {
         Self(e.what().to_string())
     }
 }
+
+/// Deprecated alias for [`Error`]. Kept so existing code continues to
+/// compile; new code should use `Error` directly.
+#[deprecated(since = "0.1.1", note = "renamed to `Error`")]
+pub type BrawError = Error;
 
 /// BMD HRESULT code, surfaced to callbacks. `is_ok()` iff `>= 0` per
 /// standard COM convention.
@@ -82,8 +87,8 @@ mod tests {
     }
 
     #[test]
-    fn braw_error_display_passes_through() {
-        let e = BrawError::new("boom");
+    fn error_display_passes_through() {
+        let e = Error::new("boom");
         assert_eq!(format!("{e}"), "boom");
     }
 }

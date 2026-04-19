@@ -6,7 +6,7 @@ use std::{mem, ops::Deref, os::unix::ffi::OsStrExt, path::Path, pin::Pin};
 use cxx::UniquePtr;
 
 use crate::{
-    error::BrawError,
+    error::Error,
     ffi,
     format::{Pipeline, ResolutionScale, ResourceFormat},
     handler::{Callback, CallbackBridge},
@@ -21,7 +21,7 @@ pub struct Codec(UniquePtr<ffi::BrawCodec>);
 impl Codec {
     /// Initialise the SDK runtime, create a codec, and register
     /// `callback` for asynchronous events.
-    pub fn new<C: Callback>(callback: C) -> Result<Self, BrawError> {
+    pub fn new<C: Callback>(callback: C) -> Result<Self, Error> {
         let c = Box::new(CallbackBridge::new(callback));
         Ok(Self(ffi::new_codec(c)?))
     }
@@ -29,20 +29,20 @@ impl Codec {
     /// Activate a decode pipeline. Fires `on_prepare_pipeline_complete`
     /// asynchronously; call [`flush_jobs`](Self::flush_jobs) to wait. The
     /// SDK refuses to dispatch decode jobs until a pipeline is prepared.
-    pub fn prepare_pipeline(&mut self, pipeline: Pipeline) -> Result<(), BrawError> {
+    pub fn prepare_pipeline(&mut self, pipeline: Pipeline) -> Result<(), Error> {
         self.pin_mut().prepare_pipeline(pipeline as u32)?;
         Ok(())
     }
 
     /// Open a `.braw` clip.
-    pub fn open_clip(&mut self, path: impl AsRef<Path>) -> Result<Clip, BrawError> {
+    pub fn open_clip(&mut self, path: impl AsRef<Path>) -> Result<Clip, Error> {
         self.do_open_clip(path.as_ref())
     }
 
-    fn do_open_clip(&mut self, path: &Path) -> Result<Clip, BrawError> {
+    fn do_open_clip(&mut self, path: &Path) -> Result<Clip, Error> {
         let bytes = path.as_os_str().as_bytes();
         if bytes.contains(&0) {
-            return Err(BrawError::new("path contains an interior NUL byte"));
+            return Err(Error::new("path contains an interior NUL byte"));
         }
         Ok(Clip(self.pin_mut().open_clip(bytes)?))
     }
@@ -84,7 +84,7 @@ impl Clip {
     /// Build a job that will read the raw bitstream for `frame_index`.
     /// Pair with [`Job::set_user_data`] to route the subsequent
     /// `on_read_complete` callback to the right slot.
-    pub fn create_read_job(&mut self, frame_index: u64) -> Result<Job, BrawError> {
+    pub fn create_read_job(&mut self, frame_index: u64) -> Result<Job, Error> {
         Ok(Job(self.0.pin_mut().create_job_read_frame(frame_index)?))
     }
 }
@@ -100,14 +100,14 @@ impl Frame {
         Self(inner)
     }
 
-    pub fn set_resource_format(&mut self, format: ResourceFormat) -> Result<(), BrawError> {
+    pub fn set_resource_format(&mut self, format: ResourceFormat) -> Result<(), Error> {
         self.0.pin_mut().set_resource_format(format as u32)?;
         Ok(())
     }
 
     /// Set the output [`ResolutionScale`] for the subsequent decode. Must
     /// be called before [`create_decode_and_process_job`](Self::create_decode_and_process_job).
-    pub fn set_resolution_scale(&mut self, scale: ResolutionScale) -> Result<(), BrawError> {
+    pub fn set_resolution_scale(&mut self, scale: ResolutionScale) -> Result<(), Error> {
         self.0.pin_mut().set_resolution_scale(scale as u32)?;
         Ok(())
     }
@@ -115,7 +115,7 @@ impl Frame {
     /// Build a job that will decode and process this frame into its
     /// currently-configured [`ResourceFormat`]. The resulting image
     /// arrives via `on_process_complete`.
-    pub fn create_decode_and_process_job(&mut self) -> Result<Job, BrawError> {
+    pub fn create_decode_and_process_job(&mut self) -> Result<Job, Error> {
         Ok(Job(self.0.pin_mut().create_job_decode_and_process()?))
     }
 }
@@ -217,7 +217,7 @@ pub struct Job(UniquePtr<ffi::BrawJob>);
 
 impl Job {
     /// Attach a 64-bit tag retrievable inside the completion callback.
-    pub fn set_user_data(&mut self, user_data: u64) -> Result<(), BrawError> {
+    pub fn set_user_data(&mut self, user_data: u64) -> Result<(), Error> {
         self.0.pin_mut().set_user_data(user_data)?;
         Ok(())
     }
@@ -225,7 +225,7 @@ impl Job {
     /// Attempt to cancel the job. Per the SDK manual (p.63) this can
     /// fail if the job has already been started by the internal decoder.
     /// The Rust handle may be dropped normally afterwards.
-    pub fn abort(&mut self) -> Result<(), BrawError> {
+    pub fn abort(&mut self) -> Result<(), Error> {
         self.0.pin_mut().abort_job()?;
         Ok(())
     }
@@ -233,7 +233,7 @@ impl Job {
     /// Submit the job to the decoder. Consumes the handle: the SDK takes
     /// ownership inside `Submit()`, so holding our Rust-side reference
     /// past this call deadlocks `flush_jobs`.
-    pub fn submit(mut self) -> Result<(), BrawError> {
+    pub fn submit(mut self) -> Result<(), Error> {
         let inner = mem::replace(&mut self.0, UniquePtr::null());
         ffi::submit_job(inner)?;
         Ok(())
