@@ -4,13 +4,15 @@
 // low-level API is built for.
 //
 //   BRAW_RUNTIME_DIR=/path/to/BlackmagicRawAPI \
-//   cargo run --release --example to_rgba_pipelined -- clip.braw > out.rgba
+//   cargo run --release --example to_rgba_pipelined \
+//       -- CLIP.braw [FRAME_LIMIT] [full|half|quarter|eighth] > out.rgba
 
 use std::{
     collections::HashMap,
     env,
     io::{self, Write},
     path::PathBuf,
+    process,
     sync::mpsc,
     time::Instant,
 };
@@ -90,14 +92,23 @@ impl Callback for PipelinedHandler {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let input = env::args()
-        .nth(1)
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("/tmp/braw-sample/A001_09091040_C068.braw"));
-    let limit: Option<u64> = env::args().nth(2).and_then(|s| s.parse().ok());
-    let scale = env::args()
-        .nth(3)
-        .map(|s| parse_scale(&s).expect("scale must be full/half/quarter/eighth"))
+    let mut args = env::args_os().skip(1);
+    let Some(input) = args.next().map(PathBuf::from) else {
+        eprintln!(
+            "usage: to_rgba_pipelined CLIP.braw [FRAME_LIMIT] [full|half|quarter|eighth] > out.rgba"
+        );
+        process::exit(2);
+    };
+    let limit: Option<u64> = args
+        .next()
+        .and_then(|s| s.into_string().ok())
+        .and_then(|s| s.parse().ok());
+    let scale = args
+        .next()
+        .map(|s| {
+            let s = s.into_string().expect("scale must be valid UTF-8");
+            parse_scale(&s).expect("scale must be full/half/quarter/eighth")
+        })
         .unwrap_or(ResolutionScale::Full);
 
     let (tx, rx) = mpsc::channel();

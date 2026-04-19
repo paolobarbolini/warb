@@ -2,23 +2,28 @@
 //
 // Usage:
 //   BRAW_RUNTIME_DIR=/path/to/BlackmagicRawAPI \
-//   cargo run --release --example to_rgba -- clip.braw > out.rgba
+//   cargo run --release --example to_rgba -- CLIP.braw [FRAME_LIMIT] > out.rgba
 //
-// A ready-to-use ffmpeg command is printed on stderr — copy it verbatim.
+// A ready-to-use ffmpeg command is printed on stderr, copy it verbatim.
 
 use std::{
     env,
     io::{self, Write},
     path::PathBuf,
+    process,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let input = env::args()
-        .nth(1)
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("/tmp/braw-sample/A001_09091040_C068.braw"));
+    let mut args = env::args_os().skip(1);
+    let Some(input) = args.next().map(PathBuf::from) else {
+        eprintln!("usage: to_rgba CLIP.braw [FRAME_LIMIT] > out.rgba");
+        process::exit(2);
+    };
     // Optional second arg caps the frame count (useful for smoke-testing).
-    let limit: Option<u64> = env::args().nth(2).and_then(|s| s.parse().ok());
+    let limit: Option<u64> = args
+        .next()
+        .and_then(|s| s.into_string().ok())
+        .and_then(|s| s.parse().ok());
 
     let mut decoder = warb::Decoder::new()?;
     decoder.open(&input)?;
