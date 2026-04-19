@@ -77,7 +77,7 @@ impl Callback for PipelinedHandler {
             return self.fail(slot, format!("SetUserData: {e}"));
         }
         if let Err(e) = job.submit() {
-            return self.fail(slot, format!("decode+process Submit: {e}"));
+            self.fail(slot, format!("decode+process Submit: {e}"));
         }
     }
 

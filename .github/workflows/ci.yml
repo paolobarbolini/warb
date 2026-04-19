@@ -46,7 +46,7 @@ jobs:
           components: clippy
 
       - name: Run clippy
-        run: cargo clippy --all-features -- -D warnings
+        run: cargo clippy --all-features --tests --examples -- -D warnings
 
   test:
     name: test / ${{ matrix.name }}
